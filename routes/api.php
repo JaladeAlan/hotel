@@ -54,6 +54,8 @@
         Route::post('/bookings/{id}/checkin', [BookingController::class, 'checkIn']);
         Route::post('/bookings/{id}/checkout', [BookingController::class, 'checkOut']);
 
+        Route::put('/bookings/{id}/extend', [BookingController::class, 'extendStay']);
+
         // User profile & balance
         Route::get('/user/profile', [UserController::class, 'getProfile']);
         Route::get('/user/balance', fn() => response()->json(['balance' => auth()->user()->balance]));

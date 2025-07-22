@@ -219,6 +219,58 @@ class BookingsController extends Controller
         }
     }
 
+    public function extendStay(Request $request, $bookingId)
+    {
+        try {
+            $request->validate([
+                'new_check_out_date' => 'required|date|after:today',
+            ]);
+
+            $booking = Booking::findOrFail($bookingId);
+
+            if (strtotime($request->new_check_out_date) <= strtotime($booking->check_out_date)) {
+                return response()->json([
+                    'error' => 'New check-out date must be after the current check-out date.'
+                ], 422);
+            }
+            
+            // Check if room is available for extension period
+            $conflict = Booking::where('room_id', $booking->room_id)
+                ->where('id', '!=', $booking->id)
+                ->where('check_in_date', '<', $request->new_check_out_date)
+                ->where('check_out_date', '>', $booking->check_out_date)
+                ->exists();
+
+            if ($conflict) {
+                return response()->json([
+                    'error' => 'Room is not available for the extended period.'
+                ], 409);
+            }
+
+            // Update booking
+            $booking->check_out_date = $request->new_check_out_date;
+            $booking->save();
+
+            return response()->json([
+                'message' => 'Stay extended successfully',
+                'booking' => $booking
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation error',
+                'messages' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'An unexpected error occurred',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function checkOut($bookingId)
     {
         try {
